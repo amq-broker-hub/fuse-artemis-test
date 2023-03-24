@@ -3,21 +3,28 @@ package bszeti.camelspringboot.jmstest;
 import javax.jms.ConnectionFactory;
 
 import org.apache.activemq.artemis.jms.client.ActiveMQConnectionFactory;
+import org.apache.camel.component.jms.JmsComponent;
+import org.apache.camel.spring.spi.SpringTransactionPolicy;
 import org.apache.qpid.jms.JmsConnectionFactory;
 import org.messaginghub.pooled.jms.JmsPoolConnectionFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.jms.connection.CachingConnectionFactory;
+import org.springframework.jms.connection.JmsTransactionManager;
 import org.springframework.util.StringUtils;
 
 @Configuration
 @ConfigurationProperties(prefix = "connection")
-public class ConnectionFactoryConfig {
-    private static final Logger log = LoggerFactory.getLogger(ConnectionFactoryConfig.class);
+@ConditionalOnExpression("'${connection.type}'!='MQTT'")
+public class JMSConfig {
+    private static final Logger log = LoggerFactory.getLogger(JMSConfig.class);
 
     private String type;
     private String remoteUrl;
@@ -29,6 +36,25 @@ public class ConnectionFactoryConfig {
     private Integer sessionCacheSize;
 
 
+	 @Bean(name="amq")
+	 public JmsComponent  jmsComponent(@Autowired ConnectionFactory pooledConnectionFactory) {
+	 	JmsComponent component = JmsComponent.jmsComponent(pooledConnectionFactory);
+	 	return component;
+	 }
+
+
+	@Bean
+	public JmsTransactionManager myTransactionManager(@Autowired ConnectionFactory pooledConnectionFactory){
+		return new JmsTransactionManager(pooledConnectionFactory);
+	}
+
+	@Bean
+	public SpringTransactionPolicy jmsSendTransaction(@Autowired JmsTransactionManager jmsTransactionManager, @Value("${receive.forward.propagation}") String transactionPropagation){
+		SpringTransactionPolicy transactionPolicy = new SpringTransactionPolicy(jmsTransactionManager);
+		transactionPolicy.setPropagationBehaviorName(transactionPropagation);
+		return transactionPolicy;
+	}    
+    
     //AMQP ConnectionFactory
     public ConnectionFactory amqpConnectionFactory(){
         JmsConnectionFactory factory = new JmsConnectionFactory(remoteUrl);

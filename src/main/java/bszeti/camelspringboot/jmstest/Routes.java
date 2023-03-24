@@ -121,9 +121,8 @@ public class Routes extends RouteBuilder {
         // Receive messages and optionally forward them to another queue
         // If message body contains "error" an exception is thrown (before forwarding)
         // The consumer can have transacted=true, then the rest of the route uses transaction policy receive.forward.propagation. This is to test different scenarios for the forwarding. Default is PROPAGATION_REQUIRED
-        from("amq:{{receive.endpoint}}")
-            .routeId("amq.receive").autoStartup("{{receive.enabled}}")
-            .transacted("jmsSendTransaction")
+        from("direct:receiveMessage")
+            .routeId("receive.message")
             .log(LoggingLevel.DEBUG, log, "Received:  ${exchangeId} - ${header._AMQ_DUPL_ID} - ${header.JMETER_COUNTER}")
 
             .choice()
@@ -136,7 +135,7 @@ public class Routes extends RouteBuilder {
             .choice()
                 .when(constant("{{receive.forward.enabled}}"))
                 .delay(constant("{{receive.forward.delay}}"))
-                .to("amq:{{receive.forward.endpoint}}")
+                .to("direct:messageForward")
                 .log(LoggingLevel.DEBUG, log, "Forwarded: ${exchangeId} - ${header._AMQ_DUPL_ID} - ${header.JMETER_COUNTER} - ${header.counter}")
                 .process(e-> receiveForwardedCounter.incrementAndGet())
                 .end()
@@ -150,7 +149,7 @@ public class Routes extends RouteBuilder {
         // Message body is from property send.message. For examepl a simple experessions: #{'$'}{exchangeId}/#{'$'}{header.CamelLoopIndex}
         // Add a UUID header. Use send.headeruuid=_AMQ_DUPL_ID for Artemis duplicate detection.
         from("timer:sender?period=1&repeatCount={{send.threads}}")
-            .routeId("amq.send").autoStartup("{{send.enabled}}")
+            .routeId("message.send").autoStartup("{{send.enabled}}")
                 .onCompletion()
                     .log(LoggingLevel.INFO, log, "Done - {{send.count}}")
                     .process(e -> sendActive.countDown())
@@ -166,7 +165,7 @@ public class Routes extends RouteBuilder {
                         .setHeader("{{send.headeruuid}}").exchange(e->java.util.UUID.randomUUID().toString())
                         .bean(this,"addExtraHeaders")
 
-                        .to("amq:{{send.endpoint}}")
+                        .to("direct:messageDelivery")
                         .process(e-> sendCounter.incrementAndGet())
                         .delay(constant("{{send.delay}}"))
                         .log(LoggingLevel.DEBUG, log, "Sent msg: ${exchangeId}-${header.CamelLoopIndex} - ${body}")
