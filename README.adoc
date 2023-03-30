@@ -64,7 +64,7 @@ Alternatively can set `connection.useCachingConnectionFactory=true` to use Sprin
 We can send messages to queue "myqueue" by creating `application-send.properties` properties file:
 ```
 send.enabled=true
-send.endpoint=queue:myqueue
+send.endpoint=jms:queue:myqueue
 send.message.length=1000
 send.headers.count=2
 send.headers.length=40
@@ -120,7 +120,7 @@ receive.transacted=false
 receive.cacheLevelName=CACHE_CONSUMER
 receive.destination=q1
 # Instead of "receive.destination" and parameters above we could set the whole JMS component endpoint "receive.endpoint" directly
-#receive.endpoint=queue:q1?concurrentConsumers=2&transacted=false&cacheLevelName=CACHE_CONSUMER
+#receive.endpoint=jms:queue:q1?concurrentConsumers=2&transacted=false&cacheLevelName=CACHE_CONSUMER
 
 connection.type=CORE
 connection.remoteUrl=tcp://localhost:61616
@@ -148,15 +148,15 @@ A complete scenario with sending, receiving and forwarding 10k messages would lo
 
 ```
 send.enabled=true
-send.endpoint=queue:q1
+send.endpoint=jms:queue:q1
 send.message.length=1000
 send.count=10000
 
 receive.enabled=true
-receive.endpoint=queue:q1?concurrentConsumers=1&transacted=true&cacheLevelName=CACHE_CONSUMER
+receive.endpoint=jms:queue:q1?concurrentConsumers=1&transacted=true&cacheLevelName=CACHE_CONSUMER
 
 receive.forward.enabled=true
-receive.forward.endpoint=queue:q1.forward
+receive.forward.endpoint=jms:queue:q1.forward
 receive.forward.propagation=PROPAGATION_REQUIRED
 
 connection.type=OPENWIRE
@@ -164,6 +164,20 @@ connection.remoteUrl=failover(tcp://localhost:61616)?maxReconnectDelay=1000
 ```
 
 Ideally this would end up with 10k messages on "q1.forward" queue.
+
+== MQTT protocol
+
+MQTT protocol uses https://camel.apache.org/components/2.x/paho-component.html[Paho] Camel component instead of https://camel.apache.org/components/2.x/jms-component.html[JMS].
+
+Endpoint examples:
+```
+send.endpoint=paho:q1?qos=2
+
+receive.endpoint=paho:q1
+```
+
+Some JMS specific parameters (e.g. `receive.concurrentConsumers`, `receive.transacted=true`, `receive.cacheLevelName`, `connection.maxConnections` ) are not ignored.
+See related `endpoint-jms-default` and `endpoint-paho-default` parameters in `application.properties`.
 
 == Container
 
