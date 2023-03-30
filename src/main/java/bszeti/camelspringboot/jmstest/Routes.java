@@ -37,6 +37,15 @@ public class Routes extends RouteBuilder {
     @Value("${receive.enabled}")
     Boolean receiveEnabled;
 
+    @Value("${receive.endpoint:#{ '${connection.type}'=='MQTT' ? '${receive.endpoint-paho-default}' : '${receive.endpoint-jms-default}' }}")
+    String receiveEndpoint;
+
+    @Value("${receive.forward.enabled}")
+    Boolean receiveForwardEnabled;
+
+    @Value("${receive.forward.endpoint:#{ '${connection.type}'=='MQTT' ? '${receive.forward.endpoint-paho-default}' : '${receive.forward.endpoint-jms-default}' }}")
+    String receiveForwardEndpoint;
+
     @Value("${receive.shutdownMessageCount}")
     Integer receiveShutdownMessageCount;
 
@@ -45,6 +54,9 @@ public class Routes extends RouteBuilder {
 
     @Value("${send.enabled}")
     Boolean sendEnabled;
+
+    @Value("${send.endpoint:#{ '${connection.type}'=='MQTT' ? '${send.endpoint-paho-default}' : '${send.endpoint-jms-default}' }}")
+    String sendEndpoint;
 
     @Value("${send.threads}")
     int sendThreads;
@@ -79,12 +91,17 @@ public class Routes extends RouteBuilder {
 
     Map<Object,Object> extraHeaders = new HashMap<>();
 
+    @ Value("#{ '${connection.type}'=='MQTT' ? 'dummyTransactionPolicy' : 'jmsTransactionPolicy'}")
+    String transactionPolicy;
+
     @PostConstruct
     private void postConstruct(){
-        log.info("send.message: {}",sendMessage);
         // Overwrite send message body with a given length string
         if (sendMessageLength>0) {
-            sendMessage = "${ref:messageWithSetLenght}";
+            sendMessage = "${ref:messageWithSetLength}";
+            log.info("send.message.length: {}",sendMessageLength);
+        } else {
+            log.info("send.message: {}",sendMessage);
         }
 
         // Create Map with extra headers
@@ -101,6 +118,12 @@ public class Routes extends RouteBuilder {
 
         //Prepare receiveCounterHistory
         receiveCounterHistory = new ArrayList<>(receiveShutdownIdleSec);
+
+        //Log
+        if (sendEnabled) log.info("send.endpoint: {}",sendEndpoint);
+        if (receiveEnabled) log.info("receive.endpoint: {}",receiveEndpoint);
+        if (receiveForwardEnabled) log.info("receive.forward.endpoint: {}",receiveForwardEndpoint);
+        log.info("transactionPolicy: {}",transactionPolicy);
     }
 
     public void addExtraHeaders(@Headers Map<Object,Object> headers){
@@ -120,10 +143,12 @@ public class Routes extends RouteBuilder {
 
         // Receive messages and optionally forward them to another queue
         // If message body contains "error" an exception is thrown (before forwarding)
-        // The consumer can have transacted=true, then the rest of the route uses transaction policy receive.forward.propagation. This is to test different scenarios for the forwarding. Default is PROPAGATION_REQUIRED
-        from("amq:{{receive.endpoint}}")
-            .routeId("amq.receive").autoStartup("{{receive.enabled}}")
-            .transacted("jmsSendTransaction")
+            from(receiveEndpoint)
+                .routeId("receive").autoStartup("{{receive.enabled}}")
+            // The consumer can have transacted=true, then forward uses transaction policy receive.forward.propagation. This is to test different scenarios for the forwarding. Default is PROPAGATION_REQUIRED
+            // For a simple use case comment this "transacted()" line, the consumer will still open a JMS transaction with transacted=true
+            .transacted(transactionPolicy)
+
             .log(LoggingLevel.DEBUG, log, "Received:  ${exchangeId} - ${header._AMQ_DUPL_ID} - ${header.JMETER_COUNTER}")
 
             .choice()
@@ -136,7 +161,7 @@ public class Routes extends RouteBuilder {
             .choice()
                 .when(constant("{{receive.forward.enabled}}"))
                 .delay(constant("{{receive.forward.delay}}"))
-                .to("amq:{{receive.forward.endpoint}}")
+                .to(receiveForwardEndpoint)
                 .log(LoggingLevel.DEBUG, log, "Forwarded: ${exchangeId} - ${header._AMQ_DUPL_ID} - ${header.JMETER_COUNTER} - ${header.counter}")
                 .process(e-> receiveForwardedCounter.incrementAndGet())
                 .end()
@@ -150,7 +175,7 @@ public class Routes extends RouteBuilder {
         // Message body is from property send.message. For examepl a simple experessions: #{'$'}{exchangeId}/#{'$'}{header.CamelLoopIndex}
         // Add a UUID header. Use send.headeruuid=_AMQ_DUPL_ID for Artemis duplicate detection.
         from("timer:sender?period=1&repeatCount={{send.threads}}")
-            .routeId("amq.send").autoStartup("{{send.enabled}}")
+            .routeId("send").autoStartup("{{send.enabled}}")
                 .onCompletion()
                     .log(LoggingLevel.INFO, log, "Done - {{send.count}}")
                     .process(e -> sendActive.countDown())
@@ -161,12 +186,11 @@ public class Routes extends RouteBuilder {
                     .log(LoggingLevel.INFO, log, "Sending {{send.count}}")
                     .loop(constant("{{send.count}}"))
                         .log(LoggingLevel.DEBUG, log, "Send msg: ${exchangeId}-${header.CamelLoopIndex}")
-
                         .setBody(simple(sendMessage))
                         .setHeader("{{send.headeruuid}}").exchange(e->java.util.UUID.randomUUID().toString())
                         .bean(this,"addExtraHeaders")
 
-                        .to("amq:{{send.endpoint}}")
+                        .to(sendEndpoint)
                         .process(e-> sendCounter.incrementAndGet())
                         .delay(constant("{{send.delay}}"))
                         .log(LoggingLevel.DEBUG, log, "Sent msg: ${exchangeId}-${header.CamelLoopIndex} - ${body}")

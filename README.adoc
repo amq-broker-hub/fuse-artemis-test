@@ -23,7 +23,7 @@ By default parameters are taken from link:src/main/resources/application.propert
 
 == Broker connection
 
-The app supports CORE, AMQP or OPENWIRE protocols to connect to the broker. The connection string must set to match the selected protocol.
+The app supports CORE, AMQP, OPENWIRE and MQTT protocols to connect to the broker. The connection string must set to match the selected protocol.
 
 CORE example:
 
@@ -47,6 +47,13 @@ OPENWIRE example:
 # https://activemq.apache.org/connection-configuration-uri
 connection.type=OPENWIRE
 connection.remoteUrl=failover:(tcp://localhost:61616)?maxReconnectDelay=10000
+```
+
+MQTT example:
+
+```
+connection.type=MQTT
+connection.remoteUrl=tcp://localhost:1883
 ```
 
 Connection pooling is enabled using `org.messaginghub.pooled.jms.JmsPoolConnectionFactory` with `connection.maxConnections` size.
@@ -111,8 +118,8 @@ receive.enabled=true
 receive.concurrentConsumers=2
 receive.transacted=false
 receive.cacheLevelName=CACHE_CONSUMER
-receive.queue=q1
-# Instead of "receive.queue" and parameters above we could set the whole JMS component endpoint "receive.endpoint" directly
+receive.destination=q1
+# Instead of "receive.destination" and parameters above we could set the whole JMS component endpoint "receive.endpoint" directly
 #receive.endpoint=queue:q1?concurrentConsumers=2&transacted=false&cacheLevelName=CACHE_CONSUMER
 
 connection.type=CORE

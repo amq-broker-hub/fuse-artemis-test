@@ -28,6 +28,7 @@
 	</dependencyManagement>
 
 	<dependencies>
+
 		<dependency>
 			<groupId>org.apache.camel</groupId>
 			<artifactId>camel-spring-boot-starter</artifactId>
@@ -67,10 +68,16 @@
 			</exclusions>
 		</dependency>
 
-		<!-- Connection pool -->
+		<!-- JMS Connection pool -->
 		<dependency>
 			<groupId>org.messaginghub</groupId>
 			<artifactId>pooled-jms</artifactId>
+		</dependency>
+
+		<!-- MQTT -->
+		<dependency>
+			<groupId>org.apache.camel</groupId>
+			<artifactId>camel-paho-starter</artifactId>
 		</dependency>
 
 	</dependencies>
