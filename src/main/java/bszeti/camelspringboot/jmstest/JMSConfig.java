@@ -36,7 +36,7 @@ public class JMSConfig {
     private Integer sessionCacheSize;
 
 
-	 @Bean(name="amq")
+	 @Bean(name="jms")
 	 public JmsComponent  jmsComponent(@Autowired ConnectionFactory pooledConnectionFactory) {
 	 	JmsComponent component = JmsComponent.jmsComponent(pooledConnectionFactory);
 	 	return component;
@@ -49,11 +49,11 @@ public class JMSConfig {
 	}
 
 	@Bean
-	public SpringTransactionPolicy jmsSendTransaction(@Autowired JmsTransactionManager jmsTransactionManager, @Value("${receive.forward.propagation}") String transactionPropagation){
+	public SpringTransactionPolicy jmsTransactionPolicy(@Autowired JmsTransactionManager jmsTransactionManager, @Value("${receive.forward.propagation}") String transactionPropagation){
 		SpringTransactionPolicy transactionPolicy = new SpringTransactionPolicy(jmsTransactionManager);
 		transactionPolicy.setPropagationBehaviorName(transactionPropagation);
 		return transactionPolicy;
-	}    
+	}
     
     //AMQP ConnectionFactory
     public ConnectionFactory amqpConnectionFactory(){

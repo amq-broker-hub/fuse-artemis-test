@@ -15,10 +15,11 @@ public class Application {
 
 
 	@Bean 
-	public String messageWithSetLenght (@Value("${send.message.length}") Integer sendMessageLength){
+	public String messageWithSetLength (@Value("${send.message.length}") Integer sendMessageLength){
 		if (sendMessageLength>0) {
             return String.format("%1$"+sendMessageLength+ "s", "").replace(" ","M");
         }
 		return "";
 	}
+
 }

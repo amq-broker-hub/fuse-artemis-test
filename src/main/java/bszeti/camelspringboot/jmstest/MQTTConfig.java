@@ -1,8 +1,10 @@
 package bszeti.camelspringboot.jmstest;
 
+import org.apache.camel.spring.spi.SpringTransactionPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -12,6 +14,12 @@ import org.apache.camel.CamelContext;
 import org.apache.camel.component.paho.PahoComponent;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
+import org.springframework.jms.connection.JmsTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.TransactionException;
+import org.springframework.transaction.jta.JtaTransactionManager;
+import org.springframework.transaction.support.AbstractPlatformTransactionManager;
+import org.springframework.transaction.support.DefaultTransactionStatus;
 
 @Configuration
 @ConfigurationProperties(prefix = "connection")
@@ -24,6 +32,8 @@ public class MQTTConfig {
 	private String remoteUrl;
 	private String username;
 	private String password;
+
+
 
 	@Bean(name = "paho")
 	public PahoComponent pahoComponent(@Autowired CamelContext camelContext) {
@@ -63,6 +73,34 @@ public class MQTTConfig {
 		//pahoComponent.setClientId(MqttClient.generateClientId());
 		
 		return pahoComponent;
+	}
+
+	// Empty transaction manager, because there is none in case of MQTT
+	@Bean
+	public SpringTransactionPolicy dummyTransactionPolicy(){
+		SpringTransactionPolicy transactionPolicy = new SpringTransactionPolicy();
+		transactionPolicy.setTransactionManager(new AbstractPlatformTransactionManager() {
+			@Override
+			protected Object doGetTransaction() throws TransactionException {
+				return null;
+			}
+
+			@Override
+			protected void doBegin(Object transaction, TransactionDefinition definition) throws TransactionException {
+				log.debug("doBegin {}, {}", transaction, definition);
+			}
+
+			@Override
+			protected void doCommit(DefaultTransactionStatus status) throws TransactionException {
+				log.debug("doCommit {}", status);
+			}
+
+			@Override
+			protected void doRollback(DefaultTransactionStatus status) throws TransactionException {
+				log.debug("doRollback {}", status);
+			}
+		});
+		return transactionPolicy;
 	}
 
 	public String getType() {
