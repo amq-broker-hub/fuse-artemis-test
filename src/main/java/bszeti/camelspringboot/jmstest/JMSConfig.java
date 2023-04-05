@@ -4,6 +4,7 @@ import javax.jms.ConnectionFactory;
 
 import org.apache.activemq.artemis.jms.client.ActiveMQConnectionFactory;
 import org.apache.camel.component.jms.JmsComponent;
+import org.apache.camel.component.sjms2.Sjms2Component;
 import org.apache.camel.spring.spi.SpringTransactionPolicy;
 import org.apache.qpid.jms.JmsConnectionFactory;
 import org.messaginghub.pooled.jms.JmsPoolConnectionFactory;
@@ -30,6 +31,7 @@ public class JMSConfig {
     private String remoteUrl;
     private String username;
     private String password;
+    private String clientId;
     private Boolean useCachingConnectionFactory;
     private Boolean useAnonymousProducers;
     private Integer maxConnections;
@@ -37,10 +39,18 @@ public class JMSConfig {
 
 
 	 @Bean(name="jms")
-	 public JmsComponent  jmsComponent(@Autowired ConnectionFactory pooledConnectionFactory) {
+	 public JmsComponent jmsComponent(@Autowired ConnectionFactory pooledConnectionFactory) {
 	 	JmsComponent component = JmsComponent.jmsComponent(pooledConnectionFactory);
 	 	return component;
 	 }
+
+    @Bean(name="sjms2")
+    public Sjms2Component sjms2Component(@Autowired ConnectionFactory pooledConnectionFactory) {
+        Sjms2Component component = new Sjms2Component();
+        component.setConnectionFactory(pooledConnectionFactory);
+        component.setConnectionClientId(clientId);
+        return component;
+    }
 
 
 	@Bean
