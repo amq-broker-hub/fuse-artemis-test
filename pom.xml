@@ -24,6 +24,14 @@
 				<scope>import</scope>
 			</dependency>
 
+			<!-- AMQP -->
+			<dependency>
+				<groupId>org.apache.qpid</groupId>
+				<artifactId>qpid-jms-client</artifactId>
+<!--				<version>1.7.0.redhat-00002</version>-->
+				<version>0.61.0.redhat-00001</version>
+			</dependency>
+
 		</dependencies>
 	</dependencyManagement>
 
@@ -47,17 +55,29 @@
 		<!-- Camel JMS -->
 		<dependency>
 			<groupId>org.apache.camel</groupId>
-			<artifactId>camel-amqp</artifactId>
+			<artifactId>camel-jms</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.camel</groupId>
 			<artifactId>camel-sjms2</artifactId>
 		</dependency>
 
-		<!-- CORE and AMQP (qpid jms) -->
+		<!-- CORE -->
 		<dependency>
 			<groupId>org.apache.activemq</groupId>
-			<artifactId>artemis-cli</artifactId>
+<!--			<artifactId>artemis-cli</artifactId>-->
+			<artifactId>artemis-jms-client</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.geronimo.specs</groupId>
+			<artifactId>geronimo-json_1.0_spec</artifactId>
+			<version>1.0.0.alpha-1-redhat-1</version>
+		</dependency>
+
+		<!-- AMQP -->
+		<dependency>
+			<groupId>org.apache.qpid</groupId>
+			<artifactId>qpid-jms-client</artifactId>
 		</dependency>
 
 		<!-- Openwire -->
